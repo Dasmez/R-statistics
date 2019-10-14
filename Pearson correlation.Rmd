@@ -1,0 +1,22 @@
+---
+title: "Pearson correlation"
+author: "Daria Mezhenskaia"
+date: "10/14/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```ruby
+data <-   #Пропишите, пожалуйста, здесь путь до своих данных
+cor_pir <- function(x, y){
+  x <- data[, 1]
+  y <- data[, 2]
+  print('Значение корреляции Пирсона для Ваших данных:')
+  cor.test(x,y)$estimate
+}
+cor_pir(data)
+```
