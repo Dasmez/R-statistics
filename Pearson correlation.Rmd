@@ -1,7 +1,7 @@
 ---
 title: "Pearson correlation"
 author: "Daria Mezhenskaia"
-date: "10/15/2019"
+date: "10/15      /2019"
 output: html_document
 ---
 
@@ -11,8 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```ruby
-data <-   #Пропишите, пожалуйста, здесь путь до своих данных
-cor_pir <- function(x, y){
+cor_pir <- function(data){
   one <- 0
   two <- 0
   three <- 0
@@ -27,5 +26,5 @@ cor_pir <- function(x, y){
   print('Значение корреляции Пирсона для Ваших данных:')
   print(one/(sqrt(two*three)))
 }
-cor_pir(data)
+cor_pir(#Пропишите, пожалуйста, здесь путь до своих данных)
 ```
