@@ -1,0 +1,47 @@
+---
+title: "Pearson or Spearman correlation"
+author: "Daria Mezhenskaia"
+date: "10/21/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```ruby
+cor_function <- function(data, f){
+  if (f == 'spearman'){
+    data_sort <- data
+    n <- nrow(data_sort)
+    data_sort <- data_sort[order(data_sort[,1]),]
+    data_sort$rang_1 <- c(1:n)
+    data_sort <- data_sort[order(data_sort[,2]),]
+    data_sort$rang_2 <- c(1:n)
+    data_sort$d <- (data_sort$rang_1 - data_sort$rang_2)^2
+    print('Значение корреляции Спирмена для Ваших данных:')
+    print(1-6*sum(data_sort$d)/(n*((n^2)-1)))
+  }
+  else if (f == 'pearson'){
+    one <- 0
+    two <- 0
+    three <- 0
+    x <- data[, 1]
+    y <- data[, 2]
+    av <- apply(data, 2, mean)
+    one 
+    for (i in 1:nrow(data)){
+      one <- one + (x[i] - av[1])*(y[i] - av[2])
+      two <- two + (x[i] - av[1])^2
+      three <- three + (y[i] - av[2])^2
+    }
+    print('Значение корреляции Пирсона для Ваших данных:')
+    print(one/(sqrt(two*three)))
+  }
+  else print('Незнакомый метод :( выберете, пожалуйста spearman или pearson')
+}
+cor_function(data2, 'spearman')
+cor_function(#Пропишите, пожалуйста, здесь путь до своих данных и через запятую выберите метод вычисления корреляции - 'spearman' или 'pearson')
+#например, cor_function(data, 'spearman')
+```
