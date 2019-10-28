@@ -1,0 +1,304 @@
+---
+title: "Project1"
+author: "Unknown"
+date: "10/27/2019"
+output:
+  html_document:
+    toc: true
+    theme: united
+    toc_position: right
+    toc_depth: 2
+    toc_float: yes
+    smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/Desktop/bioinf/R statistics/Data/") #Задаем папку с файлами
+```
+
+## Задание №1
+### Пользовательская функция для объединения всех файлов из заданной папки.
+
+_Перед запуском проверяем текущую папку (в адресе должно быть указание папки, в которой лежат данные. Также проверяем, что в такой папке нежат только необходимые данные с расширением csv._
+```{r echo=FALSE}
+getwd()
+files <- list.files()
+```
+_Пользовательская функция по объединению всех файлов будет иметь следующий вид:_
+```{r echo=TRUE}
+
+all_files <- function(files, dataset){
+  len <- length(files)
+  dataset <- read.csv(files[1])
+  for (i in 2:len){
+    a <- read.csv(files[i])
+    dataset <- rbind(dataset, a)
+  }
+write.csv(dataset, "~/Desktop/bioinf/R statistics/merged_files.csv")
+}
+
+all_files(files, dataset) #Указываем имя для входного переменной со списком всех данных и имя для новой переменной, в которую будут объединены все данные
+```
+
+_Проверяем получившийся файл и число объектов. Радуемся._
+
+```{r echo=FALSE}
+dataset <- read.csv("~/Desktop/bioinf/R statistics/merged_files.csv")
+str(dataset)
+```
+
+
+## Задание №2
+### Проверка корректности данных.
+
+```{r include=FALSE}
+library(dplyr)
+library(ggplot2)
+#library(cowplot)
+```
+_По структуре данных видно, что переменные Rings, Length и Sex... имеют тип "Factor":_
+
+```{r echo=FALSE}
+str(dataset) 
+```
+
+_Вывод всех уровней переменной Rings показал, что единственный параметр, требующий замены - "nine":_
+```{r echo=FALSE}
+sort(levels(dataset$Rings))
+```
+
+```{r echo=FALSE}
+dataset <- dataset %>% 
+  mutate(Rings =replace(Rings,which(Rings == 'nine'), 9))
+dataset$Rings <-  as.numeric(as.character(dataset$Rings))
+```
+
+_Вывод всех уровней переменной Length показал, что нет таких числовых параметров, которые были записаны в буквенном виде, поэтому можно сразу перевести всё в числовой формат без дополнительных изменений:_
+```{r echo=FALSE}
+sort(levels(dataset$Length))
+```
+
+_Единственно измерение вида "No data! I forgot to mesure it!(" из переменной Length автоматически перевелось в тип NA:_
+```{r echo=FALSE}
+dataset$Length <- as.numeric(as.character(dataset$Length))
+```
+
+_Вывод всех уровней переменной пола показал, что некоторые измерения, которые должны быть числовыми, записаны словами:_
+```{r echo=FALSE}
+levels(dataset$Sex..1...male..2...female..3...uvenil.)
+```
+
+
+_После преобразования переменных видно, что все числовые параметры записаны как числа:_
+```{r echo=FALSE}
+
+dataset <- dataset %>% 
+  mutate(Sex..1...male..2...female..3...uvenil. =replace(Sex..1...male..2...female..3...uvenil.,which(Sex..1...male..2...female..3...uvenil. == 'male'), 1))
+dataset <- dataset %>% 
+  mutate(Sex..1...male..2...female..3...uvenil. =replace(Sex..1...male..2...female..3...uvenil.,which(Sex..1...male..2...female..3...uvenil. == 'one'), 1))
+dataset <- dataset %>% 
+  mutate(Sex..1...male..2...female..3...uvenil. =replace(Sex..1...male..2...female..3...uvenil.,which(Sex..1...male..2...female..3...uvenil. == 'three'), 3))
+
+
+dataset$Sex..1...male..2...female..3...uvenil. <- as.numeric(as.character(dataset$Sex..1...male..2...female..3...uvenil.))
+
+
+str(dataset)
+```
+
+_Проверка на наличие NA данных в столбцах выявила некоторые из них. В столбце с определением пола есть NA значение - можно удалить, поскольку такое значение не восстановить по другие (и потеря одного измерения из 4177 не будет критичной). Остальные NA заменили на все самые частые значения чтобы минимизировать их вклад (хотя пропущенных данных не очень много - 22 значения на весь датафрейм, и любая замена ничего серьёзного не внесет):_
+
+```{r echo=FALSE}
+#Проверяем наличие NA в каждом из столбцов
+for (i in 1:length(dataset)){
+  if (sum(is.na(dataset[i])) != 0){
+    print("столбцы с NA")
+    print(i)
+  }
+}
+
+dataset_no_NA <- dataset %>% filter(!is.na(Sex..1...male..2...female..3...uvenil.))
+#str(dataset_no_NA) #Проверили, что удалилось только одно измерение
+
+dataset_no_NA <- mutate_if(dataset_no_NA, is.numeric, ~replace(., is.na(.), median(., na.rm = TRUE))) 
+```
+
+## Задание №3
+### Среднее значение и стандартное отклонение переменной Length для моллюсков разного пола.
+
+_Вычисление значений среднего и стандартное отклонение переменной Length для моллюсков разного пола привело к следующим результатам:_
+
+```{r echo=FALSE}
+
+mean_sd_female <- dataset_no_NA %>% filter(dataset_no_NA$Sex..1...male..2...female..3...uvenil. == 2) %>% 
+  summarise(mean = mean(Length), sd = sd(Length))
+mean_sd_male <- dataset_no_NA %>%  filter(dataset_no_NA$Sex..1...male..2...female..3...uvenil. == 1) %>% 
+  summarise(mean = mean(Length), sd = sd(Length))
+mean_sd_juv <- dataset_no_NA %>%  filter(dataset_no_NA$Sex..1...male..2...female..3...uvenil. == 3) %>% 
+  summarise(mean = mean(Length), sd = sd(Length))
+
+sex <- c("female", "male", "juvenile")
+mean_sd <- rbind(mean_sd_female, mean_sd_male, mean_sd_juv)
+mean_sd <- cbind(sex,mean_sd)
+mean_sd
+```
+
+```{r echo=FALSE}
+plot_mean_sd <- ggplot(mean_sd, aes(x=sex, y=mean)) + 
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin=mean_sd$mean-mean_sd$sd, ymax=mean_sd$mean+mean_sd$sd), width=.2,)+
+  labs(title="Длины моллюсков разного пола", x="Пол моллюска", y = "Длина моллюска, м")
+plot_mean_sd
+```
+
+### Вывод:
+_По значениям из таблицы, а также по графику для средних значений и стандартных отклонений длин моллюсков в зависимости от их пола видно, что пол не влияет на различия между женскими и мужскими особями. Для молодых особей наблюдается некоторое снижение, что может объясняться их возрастом и неоконченной стадией роста._
+
+
+## Задание №4
+### Определение процента моллюсков, у которых значение переменной Height не превышает 0.165
+
+_Для определения процента моллюсков, подходящих под условие было необходимо сначала отобрать всех особей, параметр Height которых не превышает 0.165 и затем разделить полученное число на общее число наблюдений:_
+
+```{r echo=FALSE}
+
+data_height <- dataset_no_NA %>% filter(Height <= 0.165)
+per <- round(nrow(data_height)*100/nrow(dataset_no_NA), 2)
+per
+```
+
+_Построение распределения высот моллюсков в выборке визуально подтвердило правильность полученных результатов:_
+
+```{r echo=FALSE}
+plot_hist <- ggplot(data=dataset_no_NA, aes(dataset_no_NA$Height)) + 
+  geom_bar() + coord_flip() + labs(title="Распределение высот моллюсков в выборке", x="Высота моллюска, м", y = "Количество особей, шт") + geom_vline(xintercept= 0.165, linetype="dashed", color = "red")
+plot_hist
+```
+
+### Вывод:
+_Значение переменной Height для 75.89% моллюсков не превышает 0.165._
+
+## Задание №5
+### Определение значения переменной Length, которое выше чем 92% от всех наблюдений
+
+_Вычисление границы:_
+```{r echo=FALSE}
+number <- nrow(dataset_no_NA)*0.92
+number
+
+for (i in sort(dataset_no_NA$Length)){
+  data_len <- dataset_no_NA %>% filter(Length <= i)
+  per <- nrow(data_len)*100/nrow(dataset_no_NA)
+  if (per >= 92){
+    print(i)
+    break
+  }
+}
+```
+
+_Визуализация результатов:_
+```{r echo=FALSE}
+#data_length <- dataset_no_NA %>% summary(Height <= 0.165)
+
+plot_length <- ggplot(data=dataset_no_NA, aes(dataset_no_NA$Length)) + 
+  geom_bar() + coord_flip() + labs(title="Распределение высот моллюсков в выборке", x="Высота моллюска, м", y = "Количество особей, шт") + geom_vline(xintercept= 0.67, linetype="dashed", color = "red")
+plot_length
+```
+
+
+### Вывод:
+_Для 92% моллюсков значение переменной Length не превышает 0.67._
+
+## Задание №6
+### Стандартизация переменной Length и сохранение полученных данных в новую переменную Lenght_z_scores
+
+_Проведение стандартизации и добавления новой переменной были проведены и проверены с помощью apply, а также с помощью вывода нового датасета. Новая переменная добавлена (проверка всех переменных):_
+```{r echo=FALSE}
+dataset_no_NA$Length_z_scores <- scale(dataset_no_NA$Length)
+str(dataset_no_NA)
+```
+_Проверяем sd переменной после стандартизации:_
+```{r echo=FALSE}
+apply(dataset_no_NA[11], 2, sd) 
+```
+_Проверяем mean переменной после стандартизации:_
+```{r echo=FALSE}
+apply(dataset_no_NA[11], 2, mean) 
+```
+
+_По графикам до и после стандартизации переменной Length видно, что вид распределения не изменился, однако, произошли изменения шкалы результатов._
+```{r echo=FALSE}
+plot_length_z <- ggplot(data=dataset_no_NA, aes(dataset_no_NA$Length_z_scores)) + 
+  geom_density() + labs(title="Распределение длины моллюсков после стандартизации", x="Высота моллюска, м", y = "Количество особей, шт")
+plot_length_z
+plot_length_no_z <- ggplot(data=dataset_no_NA, aes(dataset_no_NA$Length)) + 
+  geom_density() + labs(title="Распределение длины моллюсков до стандартизации", x="Высота моллюска, м", y = "Количество особей, шт")
+plot_length_no_z
+
+#library(cowplot)
+#plot_grid(plot_length_no_z, plot_length)
+```
+### Вывод:
+_После проведения стандартизации изменилась только шкала данных, но не распределение данных - всё прошло по плану._
+
+
+## Задание №7
+### Сравнение диаметров моллюсков с числом колец 5 и 15
+
+_По построению графика средних диаметров моллюсков видно, что скорее всего наблюдается статистическое различие. Необходимо проверить это каким-либо тестом. Поскольку для каждого параметра колец, число наблюдений >100, то можно воспользоваться т-критерием, предварительно проверив нормальность._
+```{r echo=FALSE}
+diam_5_15 <- dataset_no_NA %>% filter(dataset_no_NA$Rings == 5 | dataset_no_NA$Rings == 15)
+
+diam_plot <- ggplot(diam_5_15, aes(x = as.factor(Rings), y = Diameter))+
+stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + 
+stat_summary(fun.data = mean_cl_boot, geom = "point") +
+  labs(title="Диаметр моллюсков для числа колец 5 и 15", x="Количество колец, шт", y = "Диаметр моллюска, м")
+diam_plot
+```
+
+
+_Проверка нормальности распределение и последующее сравнение по т-критерию позволяют утверждать, что в рамках нашего исследования диаметры моллюсков с числом колец 5 и 15 отличаются достоверно._
+```{r echo=FALSE}
+diam_5 <- dataset_no_NA %>% filter(dataset_no_NA$Rings == 5)
+shapiro.test(diam_5$Diameter) #не отличается от нормального
+diam_15 <- dataset_no_NA %>% filter(dataset_no_NA$Rings == 15)
+shapiro.test(diam_15$Diameter) #не отличается от нормального
+
+t.test(diam_5$Diameter, diam_15$Diameter)
+```
+
+
+
+## Задание №8
+### Корреляционная взаимосвязь переменных Diametr и Whole_weight
+
+_Вычисление значения корреляции для переменных Diametr и Whole_weight показало, что параметр корреляции близок к 1 (0.9704621), при p < 2.2e-16,  то есть можно сказать, что наблюдается положительная корреляция между весом и диаметром моллюска. То есть с увеличением одного параметра, увеличивается и другой:_
+```{r echo=FALSE}
+cor.test(dataset_no_NA$Diameter, dataset_no_NA$Whole_weight, method = "spearman")
+```
+
+_Построение зависимости веса от диаметра моллюска выявили exp рост веса при увеличении диаметра:_
+```{r echo=FALSE}
+diam_ww <- ggplot(dataset_no_NA, aes(x = Diameter, y = Whole_weight))+ 
+  geom_point()+
+  geom_smooth() +
+  labs(title="График зависимости веса моллюска от его диаметра", x="Диаметр моллюска, м", y = "Вес моллюска, кг")
+diam_ww
+```
+
+_Построение зависимости веса от диаметра моллюска для каждого пола не выявило значительных отличий темпов роста между собой  exp рост веса при увеличении диаметра._
+
+
+```{r echo=FALSE}
+diam_ww_sex <- ggplot(dataset_no_NA, aes(x = Diameter, y = Whole_weight, color = as.factor(Sex..1...male..2...female..3...uvenil.)))+ 
+  geom_point()+
+  geom_smooth() +
+  labs(title="График зависимости веса моллюска от его диаметра", x="Диаметр моллюска, м", y = "Вес моллюска, кг")
+diam_ww_sex
+```
+
+
+
+
